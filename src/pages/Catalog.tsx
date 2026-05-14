@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Toast from '../components/Toast'
 
 const proveedores: Record<string, any[]> = {
   feretro: [
@@ -47,18 +48,53 @@ const stars = (n: number) => '★'.repeat(Math.floor(n)) + '☆'.repeat(5 - Math
 export default function Catalog() {
   const { categoria } = useParams()
   const navigate = useNavigate()
+  const [filtro, setFiltro] = useState('todos')
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState({ visible: false, message: '' })
   const [cart, setCart] = useState<Record<string, any>>(() => {
     const saved = localStorage.getItem('descanso-cart')
     return saved ? JSON.parse(saved) : {}
   })
 
+  useEffect(() => {
+    setLoading(true)
+    setFiltro('todos')
+    const timer = setTimeout(() => setLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [categoria])
+
   const items = proveedores[categoria || ''] || []
   const titulo = nombres[categoria || ''] || 'Servicios'
 
+  const filtros = [
+    { label: 'Todos', value: 'todos' },
+    { label: 'Mejor precio', value: 'precio' },
+    { label: 'Mejor puntuación', value: 'puntuacion' },
+    { label: 'Verificados', value: 'verificados' },
+  ]
+
+  const itemsFiltrados = [...items].filter(p => {
+    if (filtro === 'verificados') return p.ver
+    return true
+  }).sort((a, b) => {
+    if (filtro === 'precio') return a.price - b.price
+    if (filtro === 'puntuacion') return b.stars - a.stars
+    return 0
+  })
+
+  const showToast = (msg: string) => {
+    setToast({ visible: true, message: msg })
+  }
+
   const toggleCart = (p: any) => {
     const newCart = { ...cart }
-    if (newCart[p.id]) delete newCart[p.id]
-    else newCart[p.id] = { ...p, categoria: titulo }
+    if (newCart[p.id]) {
+      delete newCart[p.id]
+      showToast('Servicio eliminado')
+    } else {
+      newCart[p.id] = { ...p, categoria: titulo }
+      showToast('Agregado al plan ✓')
+    }
     setCart(newCart)
     localStorage.setItem('descanso-cart', JSON.stringify(newCart))
   }
@@ -66,7 +102,7 @@ export default function Catalog() {
   const cartCount = Object.keys(cart).length
 
   return (
-    <div className="min-h-screen bg-[#0e0d0b] text-[#f0e8d8]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+    <div className="min-h-screen bg-[#0e0d0b] text-[#f0e8d8] pb-24" style={{ fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* Topbar */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
@@ -77,7 +113,11 @@ export default function Catalog() {
           des<span className="text-[#c9a96e]">.</span>canso
         </span>
         <button onClick={() => navigate('/plan')} className="text-[#a89880] hover:text-[#f0e8d8] text-sm relative">
-          Plan {cartCount > 0 && <span className="ml-1 bg-[#c9a96e] text-[#0e0d0b] text-xs rounded-full px-1.5 py-0.5">{cartCount}</span>}
+          Plan {cartCount > 0 && (
+            <span className="ml-1 bg-[#c9a96e] text-[#0e0d0b] text-xs rounded-full px-1.5 py-0.5">
+              {cartCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -88,38 +128,82 @@ export default function Catalog() {
         <p className="text-sm text-[#a89880] mt-1">{items.length} proveedores en tu zona</p>
       </div>
 
-      {/* Lista */}
-      <div className="px-5 pt-4 pb-24 flex flex-col gap-3">
-        {items.map((p) => {
-          const inCart = !!cart[p.id]
-          return (
-            <div key={p.id} className="bg-[#1c1a17] border border-white/10 rounded-2xl overflow-hidden hover:border-[#7a6340] transition-all">
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm font-medium text-[#f0e8d8]">{p.name}</span>
-                  <span className="text-xl font-normal text-[#e2c896]" style={{ fontFamily: 'Playfair Display, serif' }}>
-                    {fmt(p.price)}
-                  </span>
-                </div>
-                <p className="text-xs text-[#a89880] mb-2">📍 {p.loc}</p>
-                <p className="text-xs text-[#a89880] leading-relaxed mb-3">{p.desc}</p>
-                <p className="text-xs text-[#7a6340]">{stars(p.stars)} {p.stars.toFixed(1)} <span className="text-[#a89880]">({p.reviews} reseñas)</span></p>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 bg-[#141310] border-t border-white/10">
-                <span className={`text-xs px-3 py-1 rounded-full border ${p.ver ? 'text-[#6b8c6a] border-[#6b8c6a]' : 'text-[#a89880] border-white/10'}`}>
-                  {p.ver ? '✓ Verificado' : 'Sin verificar'}
-                </span>
-                <button
-                  onClick={() => toggleCart(p)}
-                  className={`text-xs px-4 py-2 rounded-lg border transition-all ${inCart ? 'bg-[#c9a96e] text-[#0e0d0b] border-[#c9a96e]' : 'border-[#7a6340] text-[#c9a96e] hover:bg-[#c9a96e] hover:text-[#0e0d0b]'}`}
-                >
-                  {inCart ? 'Agregado ✓' : '+ Agregar'}
-                </button>
-              </div>
-            </div>
-          )
-        })}
+      {/* Filtros */}
+      <div className="flex gap-2 overflow-x-auto px-5 py-4 border-b border-white/10 scrollbar-none">
+        {filtros.map(f => (
+          <button
+            key={f.value}
+            onClick={() => setFiltro(f.value)}
+            className={`px-4 py-1.5 rounded-full text-xs border whitespace-nowrap transition-all ${
+              filtro === f.value
+                ? 'bg-[#c9a96e] text-[#0e0d0b] border-[#c9a96e]'
+                : 'border-white/10 text-[#a89880] hover:border-[#7a6340]'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
+
+      {/* Lista */}
+      <div className="px-5 pt-4 flex flex-col gap-3">
+        {loading ? (
+          <>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-[#1c1a17] border border-white/10 rounded-2xl h-44 animate-pulse" />
+            ))}
+          </>
+        ) : (
+          <>
+            {itemsFiltrados.map((p, index) => {
+              const inCart = !!cart[p.id]
+              return (
+                <div
+                  key={p.id}
+                  className="fade-up bg-[#1c1a17] border border-white/10 rounded-2xl overflow-hidden hover:border-[#7a6340] transition-all"
+                  style={{ animationDelay: `${index * 0.07}s` }}
+                >
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-sm font-medium text-[#f0e8d8]">{p.name}</span>
+                      <span className="text-xl font-normal text-[#e2c896]" style={{ fontFamily: 'Playfair Display, serif' }}>
+                        {fmt(p.price)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#a89880] mb-2">📍 {p.loc}</p>
+                    <p className="text-xs text-[#a89880] leading-relaxed mb-3">{p.desc}</p>
+                    <p className="text-xs text-[#7a6340]">
+                      {stars(p.stars)} {p.stars.toFixed(1)}
+                      <span className="text-[#a89880]"> ({p.reviews} reseñas)</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3 bg-[#141310] border-t border-white/10">
+                    <span className={`text-xs px-3 py-1 rounded-full border ${p.ver ? 'text-[#6b8c6a] border-[#6b8c6a]' : 'text-[#a89880] border-white/10'}`}>
+                      {p.ver ? '✓ Verificado' : 'Sin verificar'}
+                    </span>
+                    <button
+                      onClick={() => toggleCart(p)}
+                      className={`text-xs px-4 py-2 rounded-lg border transition-all ${
+                        inCart
+                          ? 'bg-[#c9a96e] text-[#0e0d0b] border-[#c9a96e]'
+                          : 'border-[#7a6340] text-[#c9a96e] hover:bg-[#c9a96e] hover:text-[#0e0d0b]'
+                      }`}
+                    >
+                      {inCart ? 'Agregado ✓' : '+ Agregar'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </>
+        )}
+      </div>
+
+      <Toast
+        message={toast.message}
+        visible={toast.visible}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
     </div>
   )
 }

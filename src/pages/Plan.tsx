@@ -18,6 +18,8 @@ export default function Plan() {
     const saved = localStorage.getItem('descanso-cart')
     return saved ? JSON.parse(saved) : {}
   })
+  const [form, setForm] = useState({ nombre: '', telefono: '' })
+  const [formError, setFormError] = useState(false)
 
   const items = Object.values(cart)
   const subtotal = items.reduce((a, i) => a + i.price, 0)
@@ -29,6 +31,14 @@ export default function Plan() {
     delete newCart[id]
     setCart(newCart)
     localStorage.setItem('descanso-cart', JSON.stringify(newCart))
+  }
+
+  const handleConfirmar = () => {
+    if (!form.nombre || !form.telefono) {
+      setFormError(true)
+      return
+    }
+    navigate('/confirmacion')
   }
 
   return (
@@ -56,7 +66,7 @@ export default function Plan() {
 
       {/* Empty state */}
       {items.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-8 py-20 text-center">
+        <div className="flex flex-col items-center justify-center px-8 py-20 pb-24 text-center">
           <div className="text-5xl mb-5 opacity-40">🌙</div>
           <h3 className="text-2xl font-normal mb-3" style={{ fontFamily: 'Playfair Display, serif' }}>
             Tu plan está vacío
@@ -75,7 +85,7 @@ export default function Plan() {
 
       {/* Items */}
       {items.length > 0 && (
-        <div className="px-5 pt-4">
+        <div className="px-5 pt-4 pb-24">
           <div className="flex flex-col divide-y divide-white/10">
             {items.map((item) => (
               <div key={item.id} className="flex items-center gap-3 py-4">
@@ -99,7 +109,6 @@ export default function Plan() {
             ))}
           </div>
 
-          {/* Agregar más */}
           <button
             onClick={() => navigate('/')}
             className="w-full mt-2 py-3 border border-dashed border-[#7a6340] rounded-xl text-sm text-[#7a6340] hover:text-[#c9a96e] hover:border-[#c9a96e] transition-all"
@@ -128,11 +137,34 @@ export default function Plan() {
             </div>
           </div>
 
-          {/* Confirmar */}
-          <button className="w-full mt-4 bg-[#c9a96e] text-[#0e0d0b] py-4 rounded-xl text-sm font-medium tracking-wide">
+          {/* Formulario */}
+          <div className="mt-4 flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Tu nombre completo"
+              value={form.nombre}
+              onChange={e => setForm({ ...form, nombre: e.target.value })}
+              className="w-full bg-[#1c1a17] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#f0e8d8] placeholder-[#a89880] outline-none focus:border-[#7a6340] transition-colors"
+            />
+            <input
+              type="tel"
+              placeholder="Tu teléfono"
+              value={form.telefono}
+              onChange={e => setForm({ ...form, telefono: e.target.value })}
+              className="w-full bg-[#1c1a17] border border-white/10 rounded-xl px-4 py-3 text-sm text-[#f0e8d8] placeholder-[#a89880] outline-none focus:border-[#7a6340] transition-colors"
+            />
+            {formError && (
+              <p className="text-xs text-red-400">Completá tu nombre y teléfono para continuar.</p>
+            )}
+          </div>
+
+          <button
+            onClick={handleConfirmar}
+            className="w-full mt-4 bg-[#c9a96e] text-[#0e0d0b] py-4 rounded-xl text-sm font-medium tracking-wide"
+          >
             Confirmar y pagar
           </button>
-          <p className="text-center text-xs text-[#a89880] mt-3 mb-10 flex items-center justify-center gap-1">
+          <p className="text-center text-xs text-[#a89880] mt-3 flex items-center justify-center gap-1">
             🔒 Pago seguro vía MercadoPago
           </p>
         </div>

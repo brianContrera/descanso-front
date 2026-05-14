@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 
 const categorias = [
   { nombre: 'Féretro y urnas', icono: '⚰️', count: 12, desde: '$148.000', slug: 'feretro' },
@@ -11,9 +12,15 @@ const categorias = [
 
 export default function Home() {
   const navigate = useNavigate()
+  const [cartCount, setCartCount] = useState(0)
+
+  useEffect(() => {
+    const cart = JSON.parse(localStorage.getItem('descanso-cart') || '{}')
+    setCartCount(Object.keys(cart).length)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-[#0e0d0b] text-[#f0e8d8]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+    <div className="min-h-screen bg-[#0e0d0b] text-[#f0e8d8] pb-24" style={{ fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* Topbar */}
       <div className="flex items-center justify-between px-5 py-4">
@@ -22,9 +29,15 @@ export default function Home() {
         </span>
         <button
           onClick={() => navigate('/plan')}
-          className="text-[#a89880] hover:text-[#f0e8d8] transition-colors text-sm"
+          className="text-[#a89880] hover:text-[#f0e8d8] transition-colors text-sm flex items-center gap-1"
         >
-          Mi plan →
+          Mi plan
+          {cartCount > 0 && (
+            <span className="bg-[#c9a96e] text-[#0e0d0b] text-xs rounded-full px-1.5 py-0.5">
+              {cartCount}
+            </span>
+          )}
+          {' →'}
         </button>
       </div>
 
@@ -59,11 +72,11 @@ export default function Home() {
       <div className="px-5 pt-5">
         <p className="text-xs tracking-widest text-[#7a6340] uppercase mb-4">Categorías disponibles</p>
         <div className="flex flex-col gap-2">
-          {categorias.map((cat) => (
+          {categorias.map((cat, i) => (
             <div
               key={cat.slug}
               onClick={() => navigate(`/catalogo/${cat.slug}`)}
-              className="flex items-center gap-4 px-4 py-4 bg-[#1c1a17] border border-white/10 rounded-xl cursor-pointer hover:border-[#7a6340] transition-all"
+              className={`fade-up delay-${i + 1} flex items-center gap-4 px-4 py-4 bg-[#1c1a17] border border-white/10 rounded-xl cursor-pointer hover:border-[#7a6340] transition-all`}
             >
               <div className="w-10 h-10 rounded-lg bg-[#252320] border border-white/10 flex items-center justify-center text-lg flex-shrink-0">
                 {cat.icono}
@@ -75,6 +88,21 @@ export default function Home() {
               <span className="text-[#7a6340] text-sm">›</span>
             </div>
           ))}
+
+          {/* Memorial Digital */}
+          <div
+            onClick={() => navigate('/memorial')}
+            className="fade-up mt-2 flex items-center gap-4 px-4 py-5 rounded-xl cursor-pointer border border-[#7a6340]/40 bg-gradient-to-r from-[#1c1a17] to-[#252320] hover:border-[#c9a96e]/40 transition-all"
+          >
+            <div className="w-10 h-10 rounded-lg bg-[#252320] border border-[#7a6340]/40 flex items-center justify-center text-lg flex-shrink-0">
+              ✦
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-[#c9a96e]">Memorial digital</div>
+              <div className="text-xs text-[#a89880] mt-0.5">QR para la lápida · Perfil eterno · Recuerdos</div>
+            </div>
+            <span className="text-xs text-[#7a6340] border border-[#7a6340]/40 px-2 py-1 rounded-full">Nuevo</span>
+          </div>
         </div>
 
         {/* Trust */}
